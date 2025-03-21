@@ -5,10 +5,10 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/AlertFlow/runner/pkg/executions"
-	"github.com/AlertFlow/runner/pkg/plugins"
+	"github.com/v1Flows/runner/pkg/executions"
+	"github.com/v1Flows/runner/pkg/plugins"
 
-	"github.com/v1Flows/alertFlow/services/backend/pkg/models"
+	"github.com/v1Flows/shared-library/pkg/models"
 
 	"github.com/hashicorp/go-plugin"
 )
@@ -29,16 +29,21 @@ func (p *Plugin) ExecuteTask(request plugins.ExecuteTaskRequest) (plugins.Respon
 	// update the step with the messages
 	err := executions.UpdateStep(request.Config, request.Execution.ID.String(), models.ExecutionSteps{
 		ID: request.Step.ID,
-		Messages: []string{
-			"Execution ID: " + request.Execution.ID.String(),
-			"Step ID: " + request.Step.ID.String(),
-			param1,
-			"Template Action finished",
+		Messages: []models.Message{
+			{
+				Title: "Templated",
+				Lines: []string{
+					"Execution ID: " + request.Execution.ID.String(),
+					"Step ID: " + request.Step.ID.String(),
+					param1,
+					"Template Action finished",
+				},
+			},
 		},
 		Status:     "success",
 		StartedAt:  time.Now(),
 		FinishedAt: time.Now(),
-	})
+	}, request.Platform)
 	if err != nil {
 		return plugins.Response{
 			Success: false,
@@ -50,19 +55,19 @@ func (p *Plugin) ExecuteTask(request plugins.ExecuteTaskRequest) (plugins.Respon
 	}, nil
 }
 
-func (p *Plugin) HandlePayload(request plugins.PayloadHandlerRequest) (plugins.Response, error) {
+func (p *Plugin) EndpointRequest(request plugins.EndpointRequest) (plugins.Response, error) {
 	return plugins.Response{
 		Success: false,
 	}, errors.New("not implemented")
 }
 
-func (p *Plugin) Info() (models.Plugins, error) {
-	var plugin = models.Plugins{
+func (p *Plugin) Info() (models.Plugin, error) {
+	var plugin = models.Plugin{
 		Name:    "Template",
 		Type:    "action",
-		Version: "1.1.0",
+		Version: "1.0.0",
 		Author:  "JustNZ",
-		Actions: models.Actions{
+		Action: models.Action{
 			Name:        "Template",
 			Description: "Template description",
 			Plugin:      "template",
@@ -78,7 +83,7 @@ func (p *Plugin) Info() (models.Plugins, error) {
 				},
 			},
 		},
-		Endpoints: models.PayloadEndpoints{},
+		Endpoint: models.Endpoint{},
 	}
 
 	return plugin, nil
@@ -95,13 +100,13 @@ func (s *PluginRPCServer) ExecuteTask(request plugins.ExecuteTaskRequest, resp *
 	return err
 }
 
-func (s *PluginRPCServer) HandlePayload(request plugins.PayloadHandlerRequest, resp *plugins.Response) error {
-	result, err := s.Impl.HandlePayload(request)
+func (s *PluginRPCServer) EndpointRequest(request plugins.EndpointRequest, resp *plugins.Response) error {
+	result, err := s.Impl.EndpointRequest(request)
 	*resp = result
 	return err
 }
 
-func (s *PluginRPCServer) Info(args interface{}, resp *models.Plugins) error {
+func (s *PluginRPCServer) Info(args interface{}, resp *models.Plugin) error {
 	result, err := s.Impl.Info()
 	*resp = result
 	return err

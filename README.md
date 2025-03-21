@@ -1,1 +1,1 @@
-## AlertFlow Runner Plugin Template
+## Runner Plugin Template
